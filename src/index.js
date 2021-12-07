@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const validator = require('validator');
 
 const { v4: uuidv4, validate } = require('uuid');
 
@@ -10,19 +11,78 @@ app.use(cors());
 const users = [];
 
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+
+  const user = users.find(user => user.username === username);
+
+  if(!user) {
+    return response.status(404).json({ 
+      error: 'User does not exist' 
+    });
+  }
+
+  request.user = user;
+
+  next()
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request;
+
+  if(!user.pro && user.todos.length == 10) {
+    return response.status(403).json({ 
+      error: 'User does not have permission to create todos' 
+    });
+  }
+
+  next();
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
-}
+  const { username } = request.headers;
+  const { id } = request.params;
+
+  const userValid = users.find(user => user.username === username);
+  if(!userValid) {
+    return response.status(404).json({ 
+      error: 'User does not exist' 
+    });
+  }
+
+  const idUUIDValid = validator.isUUID(id);
+  if(!idUUIDValid) {
+    return response.status(400).json({ 
+      error: 'UUID is not valid'
+    });
+  }
+
+  const todoValid = userValid.todos.find(todo => todo.id === id);
+  if(!todoValid) {
+    return response.status(404).json({ 
+      error: 'Todo does not exists' 
+    });
+  }
+
+  request.todo = todoValid;
+  request.user = userValid;
+
+  next();
+};
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+
+  const user = users.find(user => user.id === id);
+
+  if(!user) {
+    return response.status(404).json({ 
+      error: 'User does not exist' 
+    });
+  }
+
+  request.user = user;
+
+  next()
 }
 
 app.post('/users', (request, response) => {
